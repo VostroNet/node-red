@@ -57,7 +57,7 @@ function start() {
             var webSocketKeepAliveTime = settings.webSocketKeepAliveTime || 15000;
             var path = settings.httpAdminRoot || "/";
             path = (path.slice(0,1) != "/" ? "/":"") + path + (path.slice(-1) == "/" ? "":"/") + "comms";
-            wsServer = new ws.Server({
+            wsServer = settings.wsServer || new ws.Server({
                 server:server,
                 path:path,
                 // Disable the deflate option due to this issue
