@@ -15,6 +15,7 @@
  **/
 
 var ws = require("ws");
+var url = require("url");
 var log;
 
 var server;
@@ -57,16 +58,25 @@ function start() {
             var webSocketKeepAliveTime = settings.webSocketKeepAliveTime || 15000;
             var path = settings.httpAdminRoot || "/";
             path = (path.slice(0,1) != "/" ? "/":"") + path + (path.slice(-1) == "/" ? "":"/") + "comms";
-            wsServer = settings.wsServer || new ws.Server({
-                server:server,
-                path:path,
+            
+            wsServer = new ws.Server({
+                noServer: true,
                 // Disable the deflate option due to this issue
                 //  https://github.com/websockets/ws/pull/632
                 // that is fixed in the 1.x release of the ws module
                 // that we cannot currently pickup as it drops node 0.10 support
                 //perMessageDeflate: false
             });
-
+            // need to manually check the upgrade request in case multiple 
+            // websocket servers exist on the same server instance
+            server.on('upgrade', function(request, socket, head) {
+                var pathname = url.parse(request.url).pathname;
+                if (pathname === path) {
+                    wsServer.handleUpgrade(request, socket, head, function(ws) {
+                        wsServer.emit('connection', ws, request);
+                    });
+                }
+            })
             wsServer.on('connection',function(ws) {
                 log.audit({event: "comms.open"});
                 var pendingAuth = (settings.adminAuth != null);
